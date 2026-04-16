@@ -1,0 +1,52 @@
+# Default configuration for the Driver Fatigue Detection System.
+
+gesture:
+  sequence: ["open_palm", "thumbs_up"]
+  time_window_sec: 6.0
+  min_hold_sec: 0.5
+
+fatigue:
+  ear_threshold: 0.25
+  ear_consec_frames: 15
+  mar_threshold: 0.6
+  mar_consec_frames: 10
+  head_pitch_threshold: 20.0   # degrees — head nod
+  head_yaw_threshold: 30.0     # degrees — head turn
+  rolling_avg_window: 15
+  alert_consec_frames: 10
+
+camera:
+  device_id: 0
+  width: 640
+  height: 480
+  fps: 30
+
+classical:
+  face_detector: "dlib_hog"          # dlib_hog | haar
+  landmark_model: "shape_predictor_68_face_landmarks.dat"
+  classifier: "svm"                  # svm | random_forest
+
+deep:
+  face_detector: "mediapipe"
+  eye_model: "mobilenetv2"
+  mouth_model: "mobilenetv2"
+  temporal_model: "lstm"
+  input_size: 64
+  sequence_length: 16
+  batch_size: 32
+  learning_rate: 0.001
+  epochs: 30
+
+evaluation:
+  train_ratio: 0.70
+  val_ratio: 0.15
+  test_ratio: 0.15
+  split_by: "subject"
+
+paths:
+  raw_data: "data/raw"
+  processed_data: "data/processed"
+  labels: "data/labels"
+  external_data: "data/external"
+  models: "models"
+  experiments: "experiments"

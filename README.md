@@ -1,83 +1,67 @@
-# imgsearchtool
+# Driver Fatigue Detection System
 
-Baseline project for visual place recognition (IE Tower area) with a focus on:
-- retrieval accuracy
-- query speed / latency
-- reproducible comparison between methods
+A computer vision system that detects driver fatigue using a gesture-based activation gate.
+The system remains inactive by default and activates only when the driver performs a predefined
+gesture sequence (open palm followed by thumbs up within a time window). Once active, it
+continuously monitors for signs of fatigue — eye closure, yawning, head drooping — using both
+classical (EAR/MAR + SVM) and deep learning (MobileNetV2 + LSTM) pipelines.
 
 ## Project Structure
 
 ```text
-imgsearchtool/
-  data/
-    raw/                  # captured images from IE Tower area
-    processed/            # optional resized/cleaned versions
-  experiments/            # logs, result tables, plots
-  src/imgsearchtool/
-    dataset.py            # dataset scanning and labels
-    pipeline.py           # index + query orchestration
-    cli.py                # minimal command-line interface
-    features/
-      classical.py        # color histogram baseline
-      deep.py             # tiny embedding placeholder baseline
-    index/
-      bruteforce.py       # brute-force nearest-neighbor search
-    evaluation/
-      metrics.py          # top-k, precision@k, mAP
-  pyproject.toml
-  README.md
+├── pyproject.toml              # Package metadata and dependencies
+├── requirements.txt            # Pinned dependencies for reproducibility
+├── configs/
+│   └── default.yaml            # Default thresholds and parameters
+├── data/
+│   ├── raw/gestures/           # Gesture sequence recordings
+│   ├── raw/fatigue/            # Fatigue session recordings
+│   ├── processed/              # Extracted frames, cropped ROIs
+│   ├── labels/                 # CSV annotations (frame_id, EAR, MAR, ...)
+│   └── external/               # External pre-training datasets
+├── models/
+│   ├── classical/              # Serialized SVM / Random Forest models
+│   └── deep/                   # CNN/LSTM checkpoints, ONNX exports
+├── experiments/                # MLflow runs / CSV experiment logs
+├── notebooks/                  # Jupyter notebooks for EDA / prototyping
+├── scripts/                    # Standalone utility scripts
+├── tests/                      # Unit and integration tests
+└── src/fatigue_detection/      # Main package
+    ├── gesture/                # Module 1: gesture-based activation gate
+    ├── fatigue/                # Module 2: fatigue detection
+    │   ├── classical/          #   Classical pipeline (EAR/MAR/HOG + SVM)
+    │   └── deep/               #   Deep learning pipeline (MobileNet + LSTM)
+    ├── evaluation/             # Metrics, comparison, visualization
+    ├── data/                   # Dataset loading, preprocessing, augmentation
+    └── utils/                  # Video capture, drawing overlays, timing
 ```
-
-## Dataset Layout
-
-Organize images by place label:
-
-```text
-data/raw/
-  place_entrance/
-    img_001.jpg
-    img_002.jpg
-  place_stairs/
-    img_101.jpg
-```
-
-Each folder name is treated as a class/place label.
 
 ## Quick Start
 
-1) Install package in editable mode:
+1. Install in editable mode:
 
 ```bash
 pip install -e .
 ```
 
-2) Run a query with the baseline method:
+2. Run the live detection system:
 
 ```bash
-imgsearch --dataset data/raw --query data/raw/place_entrance/img_001.jpg --method color_hist --top-k 5
+fatigue-detect --mode live --pipeline classical
 ```
 
-3) Try the second baseline for comparison:
+3. Evaluate on recorded video:
 
 ```bash
-imgsearch --dataset data/raw --query data/raw/place_entrance/img_001.jpg --method tiny_embed --top-k 5
+fatigue-detect --mode eval --video data/raw/fatigue/session01.mp4 --pipeline both
 ```
 
-## What Is Already Implemented
+## System Flow
 
-- End-to-end pipeline: dataset scan -> feature extraction -> indexing -> retrieval
-- Two basic methods for fair method-vs-method experiments:
-  - `color_hist` (classical handcrafted descriptor)
-  - `tiny_embed` (placeholder embedding-style descriptor)
-- Retrieval metrics ready for experiments:
-  - Top-K accuracy
-  - Precision@K
-  - mAP
+```
+CAMERA → [Gesture Gate] → (activated?) → [Fatigue Detection] → ALERT / LOG
+```
 
-## Next Steps (to amplify later)
-
-- Add a real deep embedding model (e.g., pretrained CNN/ViT)
-- Add train/val/test splits and experiment protocol scripts
-- Replace brute-force search with an approximate nearest-neighbor index
-- Add robust evaluation scripts and plotting
-- Add memory/time profiling and ablation studies
+- **Gesture Gate**: MediaPipe Hands → finger-angle rules → state machine (WAITING → G1 → G2 → ACTIVATED)
+- **Classical Pipeline**: dlib 68-landmarks → EAR/MAR/head pose → HOG + SVM
+- **Deep Pipeline**: MediaPipe Face Mesh → eye/mouth ROI CNNs → LSTM temporal model → fusion
